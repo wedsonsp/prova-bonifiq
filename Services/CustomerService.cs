@@ -1,21 +1,33 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using ProvaPub.Models;
 using ProvaPub.Repository;
+using ProvaPub.Repository.Interfaces;
 
 namespace ProvaPub.Services
 {
-    public class CustomerService
+    public class CustomerService: ICustomerService
     {
-        TestDbContext _ctx;
+        private const int PageSize = 10; // Tamanho da página fixo em 10
+        private readonly TestDbContext _ctx;
 
         public CustomerService(TestDbContext ctx)
         {
             _ctx = ctx;
         }
 
-        public CustomerList ListCustomers(int page)
+        public EntityList<Customer> ListCustomers(int page)
         {
-            return new CustomerList() { HasNext = false, TotalCount = 10, Customers = _ctx.Customers.ToList() };
+            // Calcula o índice de início da página
+            int startIndex = (page - 1) * PageSize;
+
+            // Obtém os produtos da página atual com base no tamanho da página
+            var customers = _ctx.Customers.Skip(startIndex).Take(PageSize).ToList();
+
+            // Verifica se existem mais páginas
+            bool hasNext = _ctx.Customers.Skip(page * PageSize).Any();
+
+            // Retorna a lista de produtos com os metadados de paginação
+            return new EntityList<Customer>() { TotalCount = _ctx.Products.Count(), HasNext = hasNext, Items = customers };
         }
 
         public async Task<bool> CanPurchase(int customerId, decimal purchaseValue)
